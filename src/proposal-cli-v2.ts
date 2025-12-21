@@ -32,17 +32,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { createClient } from '@osdk/client';
+import { createPlatformClient } from '@osdk/client';
+import { Actions, OntologyObjectsV2 } from '@osdk/foundry.ontologies';
+import type { SearchObjectsRequestV2 } from '@osdk/foundry.ontologies';
 
-// Import OSDK types dynamically based on config
-import {
-  foundryRulesCreateAddProposal11,
-  foundryRulesApproveAddProposal11,
-  foundryRulesRejectProposal11,
-  foundryRulesEditProposal11,
-  FoundryRulesProposalObjectArchetypeId1_4,
-  FoundryRulesRuleObjectArchetypeId1_4
-} from '@title-review-app/sdk';
+// Platform SDK types for dynamic API calls
+type PlatformClient = ReturnType<typeof createPlatformClient>;
 
 // v2 modules
 import { loadConfig, ResolvedConfig } from './v2/config/index.js';
@@ -136,7 +131,7 @@ function loadAndValidateConfig(configPath: string | null): ResolvedConfig {
 // CLIENT FACTORY
 // =============================================================================
 
-function createFoundryClient(config: ResolvedConfig) {
+function createFoundryClient(config: ResolvedConfig): PlatformClient {
   const token = config.foundry.token;
 
   if (!token) {
@@ -144,7 +139,12 @@ function createFoundryClient(config: ResolvedConfig) {
     process.exit(1);
   }
 
-  return createClient(config.foundry.url, config.foundry.ontologyRid, async () => token);
+  return createPlatformClient(config.foundry.url, async () => token);
+}
+
+// Helper to get ontology identifier (can be RID or API name)
+function getOntologyId(config: ResolvedConfig): string {
+  return config.foundry.ontologyRid;
 }
 
 // =============================================================================
@@ -314,16 +314,22 @@ async function cmdCreate(jsonFile: string, config: ResolvedConfig) {
   console.log(`Name: ${name}`);
 
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const actionApiName = config.sdk.actions.createProposal;
 
-  await client(foundryRulesCreateAddProposal11).applyAction({
-    proposal_id: proposalId,
-    rule_id: ruleId,
-    new_rule_name: name,
-    new_rule_description: description,
-    new_logic: compressed,
-    new_logic_keywords: keywords,
-    proposal_author: config.conventions.defaultAuthor,
-    proposal_creation_timestamp: new Date().toISOString(),
+  console.log(`Using action: ${actionApiName}`);
+
+  await Actions.apply(client, ontologyId, actionApiName, {
+    parameters: {
+      proposal_id: proposalId,
+      rule_id: ruleId,
+      new_rule_name: name,
+      new_rule_description: description,
+      new_logic: compressed,
+      new_logic_keywords: keywords,
+      proposal_author: config.conventions.defaultAuthor,
+      proposal_creation_timestamp: new Date().toISOString(),
+    }
   });
 
   console.log('\nSUCCESS!');
@@ -334,23 +340,32 @@ async function cmdCreate(jsonFile: string, config: ResolvedConfig) {
 async function cmdDecompress(proposalId: string, config: ResolvedConfig) {
   console.log(`Fetching proposal: ${proposalId}`);
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const proposalObjectType = config.sdk.archetypes.proposal;
 
-  const proposals = await client(FoundryRulesProposalObjectArchetypeId1_4)
-    .where({ proposalId: { $eq: proposalId } })
-    .fetchPage({ $pageSize: 1 });
+  console.log(`Using object type: ${proposalObjectType}`);
 
-  if (proposals.data.length === 0) {
+  const result = await OntologyObjectsV2.search(client, ontologyId, proposalObjectType, {
+    where: {
+      type: 'eq',
+      field: 'proposalId',
+      value: proposalId
+    },
+    select: ['proposalId', 'proposalStatus', 'proposalAuthor', 'newRuleName', 'newRuleLogic', 'ruleId']
+  });
+
+  if (!result.data || result.data.length === 0) {
     console.error(`Proposal not found: ${proposalId}`);
     process.exit(1);
   }
 
-  const proposal = proposals.data[0];
+  const proposal = result.data[0] as Record<string, unknown>;
   console.log(`Found: ${proposal.proposalId}`);
   console.log(`Status: ${proposal.proposalStatus}`);
   console.log(`Author: ${proposal.proposalAuthor}`);
   console.log(`Name: ${proposal.newRuleName}`);
 
-  const newLogic = proposal.newRuleLogic;
+  const newLogic = proposal.newRuleLogic as string;
   if (!newLogic) {
     console.error('Proposal has no newLogic');
     process.exit(1);
@@ -371,17 +386,24 @@ async function cmdDecompress(proposalId: string, config: ResolvedConfig) {
 async function cmdApprove(proposalId: string, config: ResolvedConfig) {
   console.log(`Fetching proposal: ${proposalId}`);
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const proposalObjectType = config.sdk.archetypes.proposal;
 
-  const proposals = await client(FoundryRulesProposalObjectArchetypeId1_4)
-    .where({ proposalId: { $eq: proposalId } })
-    .fetchPage({ $pageSize: 1 });
+  const result = await OntologyObjectsV2.search(client, ontologyId, proposalObjectType, {
+    where: {
+      type: 'eq',
+      field: 'proposalId',
+      value: proposalId
+    },
+    select: ['proposalId', 'proposalStatus', 'ruleId']
+  });
 
-  if (proposals.data.length === 0) {
+  if (!result.data || result.data.length === 0) {
     console.error(`Proposal not found: ${proposalId}`);
     process.exit(1);
   }
 
-  const proposal = proposals.data[0];
+  const proposal = result.data[0] as Record<string, unknown>;
   console.log(`Found: ${proposal.proposalId}`);
   console.log(`Status: ${proposal.proposalStatus}`);
 
@@ -390,18 +412,22 @@ async function cmdApprove(proposalId: string, config: ResolvedConfig) {
     process.exit(1);
   }
 
-  const ruleId = proposal.ruleId;
+  const ruleId = proposal.ruleId as string;
   if (!ruleId) {
     console.error('Proposal has no ruleId');
     process.exit(1);
   }
 
   console.log('\nApproving proposal...');
-  await client(foundryRulesApproveAddProposal11).applyAction({
-    proposal_object: proposal,
-    proposal_review_timestamp: new Date().toISOString(),
-    proposal_reviewer: config.conventions.defaultAuthor,
-    rule_id: ruleId,
+  const actionApiName = config.sdk.actions.approveProposal;
+
+  await Actions.apply(client, ontologyId, actionApiName, {
+    parameters: {
+      proposal_object: proposalId, // Use primary key for object reference
+      proposal_review_timestamp: new Date().toISOString(),
+      proposal_reviewer: config.conventions.defaultAuthor,
+      rule_id: ruleId,
+    }
   });
 
   console.log('\nSUCCESS! Proposal approved.');
@@ -411,17 +437,24 @@ async function cmdApprove(proposalId: string, config: ResolvedConfig) {
 async function cmdReject(proposalId: string, config: ResolvedConfig) {
   console.log(`Fetching proposal: ${proposalId}`);
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const proposalObjectType = config.sdk.archetypes.proposal;
 
-  const proposals = await client(FoundryRulesProposalObjectArchetypeId1_4)
-    .where({ proposalId: { $eq: proposalId } })
-    .fetchPage({ $pageSize: 1 });
+  const result = await OntologyObjectsV2.search(client, ontologyId, proposalObjectType, {
+    where: {
+      type: 'eq',
+      field: 'proposalId',
+      value: proposalId
+    },
+    select: ['proposalId', 'proposalStatus']
+  });
 
-  if (proposals.data.length === 0) {
+  if (!result.data || result.data.length === 0) {
     console.error(`Proposal not found: ${proposalId}`);
     process.exit(1);
   }
 
-  const proposal = proposals.data[0];
+  const proposal = result.data[0] as Record<string, unknown>;
   console.log(`Found: ${proposal.proposalId}`);
   console.log(`Status: ${proposal.proposalStatus}`);
 
@@ -431,10 +464,14 @@ async function cmdReject(proposalId: string, config: ResolvedConfig) {
   }
 
   console.log('\nRejecting proposal...');
-  await client(foundryRulesRejectProposal11).applyAction({
-    proposal_object: proposal,
-    proposal_review_timestamp: new Date().toISOString(),
-    proposal_reviewer: config.conventions.defaultAuthor,
+  const actionApiName = config.sdk.actions.rejectProposal;
+
+  await Actions.apply(client, ontologyId, actionApiName, {
+    parameters: {
+      proposal_object: proposalId, // Use primary key for object reference
+      proposal_review_timestamp: new Date().toISOString(),
+      proposal_reviewer: config.conventions.defaultAuthor,
+    }
   });
 
   console.log('\nSUCCESS! Proposal rejected.');
@@ -443,14 +480,24 @@ async function cmdReject(proposalId: string, config: ResolvedConfig) {
 async function cmdListProposals(statusFilter: string | undefined, config: ResolvedConfig) {
   console.log('Fetching proposals...');
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const proposalObjectType = config.sdk.archetypes.proposal;
 
-  let query = client(FoundryRulesProposalObjectArchetypeId1_4);
+  console.log(`Using object type: ${proposalObjectType}`);
 
-  if (statusFilter) {
-    query = query.where({ proposalStatus: { $eq: statusFilter } });
-  }
+  const searchBody: SearchObjectsRequestV2 = {
+    select: ['proposalId', 'proposalStatus', 'newRuleName', 'proposalAuthor', 'proposalCreationTimestamp'],
+    pageSize: 100,
+    ...(statusFilter && {
+      where: {
+        type: 'eq',
+        field: 'proposalStatus',
+        value: statusFilter
+      }
+    })
+  };
 
-  const proposals = await query.fetchPage({ $pageSize: 100 });
+  const result = await OntologyObjectsV2.search(client, ontologyId, proposalObjectType, searchBody);
 
   console.log(`\n${'='.repeat(100)}`);
   console.log(`PROPOSALS ${statusFilter ? `(Status: ${statusFilter})` : '(All)'}`);
@@ -464,33 +511,41 @@ async function cmdListProposals(statusFilter: string | undefined, config: Resolv
   );
   console.log('-'.repeat(100));
 
-  if (proposals.data.length === 0) {
+  const proposals = result.data || [];
+  if (proposals.length === 0) {
     console.log('No proposals found.');
   } else {
-    for (const p of proposals.data) {
-      const created = p.proposalCreationTimestamp
-        ? new Date(p.proposalCreationTimestamp).toLocaleDateString()
+    for (const p of proposals) {
+      const prop = p as Record<string, unknown>;
+      const created = prop.proposalCreationTimestamp
+        ? new Date(prop.proposalCreationTimestamp as string).toLocaleDateString()
         : 'N/A';
       console.log(
-        (p.proposalId || 'N/A').padEnd(35) +
-        (p.proposalStatus || 'N/A').padEnd(12) +
-        (p.newRuleName || 'N/A').substring(0, 28).padEnd(30) +
-        (p.proposalAuthor || 'N/A').substring(0, 13).padEnd(15) +
+        ((prop.proposalId as string) || 'N/A').padEnd(35) +
+        ((prop.proposalStatus as string) || 'N/A').padEnd(12) +
+        ((prop.newRuleName as string) || 'N/A').substring(0, 28).padEnd(30) +
+        ((prop.proposalAuthor as string) || 'N/A').substring(0, 13).padEnd(15) +
         created
       );
     }
   }
 
   console.log('-'.repeat(100));
-  console.log(`Total: ${proposals.data.length} proposals`);
+  console.log(`Total: ${proposals.length} proposals`);
 }
 
 async function cmdListRules(config: ResolvedConfig) {
   console.log('Fetching rules...');
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const ruleObjectType = config.sdk.archetypes.rule;
 
-  const rules = await client(FoundryRulesRuleObjectArchetypeId1_4)
-    .fetchPage({ $pageSize: 100 });
+  console.log(`Using object type: ${ruleObjectType}`);
+
+  const result = await OntologyObjectsV2.list(client, ontologyId, ruleObjectType, {
+    select: ['ruleId', 'ruleName', 'logicKeywords'],
+    pageSize: 100
+  });
 
   console.log(`\n${'='.repeat(100)}`);
   console.log('RULES');
@@ -502,33 +557,46 @@ async function cmdListRules(config: ResolvedConfig) {
   );
   console.log('-'.repeat(100));
 
-  if (rules.data.length === 0) {
+  const rules = result.data || [];
+  if (rules.length === 0) {
     console.log('No rules found.');
   } else {
-    for (const r of rules.data) {
+    for (const r of rules) {
+      const rule = r as Record<string, unknown>;
       console.log(
-        (r.ruleId || 'N/A').padEnd(40) +
-        (r.ruleName || 'N/A').substring(0, 33).padEnd(35) +
-        (r.logicKeywords || 'N/A').substring(0, 23).padEnd(25)
+        ((rule.ruleId as string) || 'N/A').padEnd(40) +
+        ((rule.ruleName as string) || 'N/A').substring(0, 33).padEnd(35) +
+        ((rule.logicKeywords as string) || 'N/A').substring(0, 23).padEnd(25)
       );
     }
   }
 
   console.log('-'.repeat(100));
-  console.log(`Total: ${rules.data.length} rules`);
+  console.log(`Total: ${rules.length} rules`);
 }
 
 async function cmdBatchReject(pattern: string, config: ResolvedConfig) {
   console.log(`Finding OPEN proposals matching pattern: "${pattern}"`);
   const client = createFoundryClient(config);
+  const ontologyId = getOntologyId(config);
+  const proposalObjectType = config.sdk.archetypes.proposal;
 
-  const proposals = await client(FoundryRulesProposalObjectArchetypeId1_4)
-    .where({ proposalStatus: { $eq: 'OPEN' } })
-    .fetchPage({ $pageSize: 100 });
+  const result = await OntologyObjectsV2.search(client, ontologyId, proposalObjectType, {
+    where: {
+      type: 'eq',
+      field: 'proposalStatus',
+      value: 'OPEN'
+    },
+    select: ['proposalId', 'newRuleName'],
+    pageSize: 100
+  });
 
-  const matching = proposals.data.filter(p =>
-    p.proposalId?.includes(pattern) || p.newRuleName?.includes(pattern)
-  );
+  const proposals = result.data || [];
+  const matching = proposals.filter((p: Record<string, unknown>) => {
+    const id = (p.proposalId as string) || '';
+    const name = (p.newRuleName as string) || '';
+    return id.includes(pattern) || name.includes(pattern);
+  });
 
   if (matching.length === 0) {
     console.log('No matching OPEN proposals found.');
@@ -537,25 +605,30 @@ async function cmdBatchReject(pattern: string, config: ResolvedConfig) {
 
   console.log(`\nFound ${matching.length} proposals to reject:`);
   for (const p of matching) {
-    console.log(`  - ${p.proposalId}: ${p.newRuleName}`);
+    const prop = p as Record<string, unknown>;
+    console.log(`  - ${prop.proposalId}: ${prop.newRuleName}`);
   }
 
   console.log(`\nRejecting ${matching.length} proposals...`);
 
   let rejected = 0;
   let failed = 0;
+  const actionApiName = config.sdk.actions.rejectProposal;
 
   for (const proposal of matching) {
+    const prop = proposal as Record<string, unknown>;
     try {
-      await client(foundryRulesRejectProposal11).applyAction({
-        proposal_object: proposal,
-        proposal_review_timestamp: new Date().toISOString(),
-        proposal_reviewer: `${config.conventions.defaultAuthor}-batch`,
+      await Actions.apply(client, ontologyId, actionApiName, {
+        parameters: {
+          proposal_object: prop.proposalId, // Use primary key
+          proposal_review_timestamp: new Date().toISOString(),
+          proposal_reviewer: `${config.conventions.defaultAuthor}-batch`,
+        }
       });
-      console.log(`  ✓ Rejected: ${proposal.proposalId}`);
+      console.log(`  ✓ Rejected: ${prop.proposalId}`);
       rejected++;
     } catch (e) {
-      console.log(`  ✗ Failed: ${proposal.proposalId} - ${(e as Error).message}`);
+      console.log(`  ✗ Failed: ${prop.proposalId} - ${(e as Error).message}`);
       failed++;
     }
   }
