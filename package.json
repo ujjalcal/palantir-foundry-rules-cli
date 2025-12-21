@@ -1,5 +1,5 @@
 {
-  "name": "@foundry-tools/foundry-rules-cli",
+  "name": "@title-review-app/foundry-rules-cli",
   "version": "1.2.0",
   "description": "Config-driven CLI and library for managing Foundry Rules proposals",
   "type": "module",
