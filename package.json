@@ -1,10 +1,20 @@
 {
   "name": "@foundry-tools/foundry-rules-cli",
-  "version": "1.1.0",
-  "description": "Config-driven CLI for managing Foundry Rules proposals",
+  "version": "1.2.0",
+  "description": "Config-driven CLI and library for managing Foundry Rules proposals",
   "type": "module",
-  "main": "dist/proposal-cli-v2.js",
-  "types": "dist/proposal-cli-v2.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/proposal-cli-v2.d.ts",
+      "import": "./dist/proposal-cli-v2.js"
+    }
+  },
   "bin": {
     "foundry-rules": "dist/bin/cli.js"
   },
