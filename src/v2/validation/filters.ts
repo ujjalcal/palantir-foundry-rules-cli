@@ -5,7 +5,7 @@
  * Checks that only supported filter types are used.
  */
 
-import { ValidationConfig } from '../config/types';
+import { ValidationConfig } from '../config/types.js';
 
 // =============================================================================
 // TYPES

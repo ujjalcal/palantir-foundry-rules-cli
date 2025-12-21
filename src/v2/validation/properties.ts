@@ -5,7 +5,7 @@
  * Supports both static (config-defined) and dynamic (API-fetched) validation.
  */
 
-import { ObjectTypeConfig, PropertyDefinition } from '../config/types';
+import { ObjectTypeConfig, PropertyDefinition } from '../config/types.js';
 
 // =============================================================================
 // TYPES

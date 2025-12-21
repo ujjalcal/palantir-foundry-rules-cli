@@ -5,7 +5,7 @@
  * Uses ValidationConfig from workflow config to determine valid types.
  */
 
-import { ValidationConfig } from '../config/types';
+import { ValidationConfig } from '../config/types.js';
 
 // =============================================================================
 // TYPES

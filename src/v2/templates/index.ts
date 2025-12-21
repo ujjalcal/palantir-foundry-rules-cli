@@ -2,4 +2,4 @@
  * Templates Module - Exports
  */
 
-export * from './loader';
+export * from './loader.js';

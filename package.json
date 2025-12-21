@@ -3,21 +3,43 @@
   "version": "1.0.0",
   "description": "Config-driven CLI for managing Foundry Rules proposals",
   "type": "module",
+  "main": "dist/proposal-cli-v2.js",
+  "types": "dist/proposal-cli-v2.d.ts",
+  "bin": {
+    "foundry-rules": "dist/bin/cli.js"
+  },
+  "files": [
+    "dist",
+    "config",
+    "prompts",
+    "samples"
+  ],
   "scripts": {
-    "cli": "npx tsx proposal-cli-v2.ts",
-    "validate": "npx tsx proposal-cli-v2.ts --config config/demo-product.json validate",
-    "templates": "npx tsx proposal-cli-v2.ts --config config/demo-product.json template --list"
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "cli": "node dist/bin/cli.js",
+    "cli:dev": "npx tsx src/bin/cli.ts",
+    "validate": "node dist/bin/cli.js --config config/demo-product.json validate",
+    "templates": "node dist/bin/cli.js --config config/demo-product.json template --list"
   },
   "dependencies": {
     "@osdk/client": "^2.6.0",
     "@osdk/foundry": "^2.44.0",
     "@osdk/oauth": "^1.6.0",
     "@title-review-app/sdk": "^0.22.0",
-    "tsx": "^4.7.0"
+    "lz-string": "^1.5.0"
   },
   "devDependencies": {
+    "@types/lz-string": "^1.5.0",
+    "@types/node": "^20.0.0",
     "ajv": "^8.17.1",
-    "lz-string": "^1.5.0",
-    "pako": "^2.1.0"
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "registry": "https://ujjal-test.usw-23.palantirfoundry.com/artifacts/api/repositories/ri.artifacts.main.repository.b31057c1-a6f7-4e10-803c-9a20fa108856/contents/release/npm/"
   }
 }

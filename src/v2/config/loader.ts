@@ -10,8 +10,8 @@ import {
   WorkflowConfig,
   ResolvedConfig,
   ResolvedFoundryConnection
-} from './types';
-import { resolveEnvVars, validateEnvVars } from './resolver';
+} from './types.js';
+import { resolveEnvVars, validateEnvVars } from './resolver.js';
 
 // =============================================================================
 // LOADER TYPES

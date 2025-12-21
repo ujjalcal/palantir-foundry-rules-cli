@@ -6,7 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { TemplateConfig, WorkflowDefinition } from '../config/types';
+import { TemplateConfig, WorkflowDefinition } from '../config/types.js';
 
 // =============================================================================
 // TYPES

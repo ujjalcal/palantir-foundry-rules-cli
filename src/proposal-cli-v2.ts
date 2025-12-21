@@ -45,12 +45,12 @@ import {
 } from '@title-review-app/sdk';
 
 // v2 modules
-import { loadConfig, ResolvedConfig } from './v2/config';
-import { validateRuleLogic, extractObjectTypeId, extractWorkflowRid } from './v2/validation/schema';
-import { validateProperties, getPropertySummary } from './v2/validation/properties';
-import { validateFilterTypes, getFilterSummary } from './v2/validation/filters';
-import { compress, decompress } from './v2/compression';
-import { buildFromTemplate, getBuiltInTemplates, wrapFilterAsRuleLogic } from './v2/templates';
+import { loadConfig, ResolvedConfig } from './v2/config/index.js';
+import { validateRuleLogic, extractObjectTypeId, extractWorkflowRid } from './v2/validation/schema.js';
+import { validateProperties, getPropertySummary } from './v2/validation/properties.js';
+import { validateFilterTypes, getFilterSummary } from './v2/validation/filters.js';
+import { compress, decompress } from './v2/compression.js';
+import { buildFromTemplate, getBuiltInTemplates, wrapFilterAsRuleLogic } from './v2/templates/index.js';
 
 // =============================================================================
 // CLI ARGUMENT PARSING
@@ -140,7 +140,7 @@ function createFoundryClient(config: ResolvedConfig) {
   const token = config.foundry.token;
 
   if (!token) {
-    console.error(`Error: ${config.foundry.tokenEnvVar || 'FOUNDRY_TOKEN'} environment variable required`);
+    console.error('Error: FOUNDRY_TOKEN environment variable required');
     process.exit(1);
   }
 
@@ -509,7 +509,7 @@ async function cmdListRules(config: ResolvedConfig) {
       console.log(
         (r.ruleId || 'N/A').padEnd(40) +
         (r.ruleName || 'N/A').substring(0, 33).padEnd(35) +
-        (r.ruleLogicKeywords || 'N/A').substring(0, 23).padEnd(25)
+        (r.logicKeywords || 'N/A').substring(0, 23).padEnd(25)
       );
     }
   }
