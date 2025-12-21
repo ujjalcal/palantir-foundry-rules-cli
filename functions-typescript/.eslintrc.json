@@ -1,0 +1,6 @@
+{
+    "root": true,
+    "extends": [
+        "./build/configuration/eslintrc.functions.json"
+    ]
+}
