@@ -1,0 +1,65 @@
+{
+  "$schema": "../../config/workflow-schema.json#/definitions/templateConfig",
+  "name": "string-or",
+  "description": "OR filter with multiple string values - matches when a property equals ANY of the specified values",
+  "category": "string",
+  "parameters": {
+    "propertyId": {
+      "type": "string",
+      "required": true,
+      "description": "The property to filter on",
+      "placeholder": "category"
+    },
+    "values": {
+      "type": "array",
+      "items": { "type": "string" },
+      "required": true,
+      "description": "List of values to match (OR logic)",
+      "placeholder": ["electronics", "clothing", "food"]
+    },
+    "caseSensitive": {
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether the match should be case-sensitive"
+    }
+  },
+  "example": {
+    "propertyId": "category",
+    "values": ["electronics", "clothing", "food"]
+  },
+  "templateLogic": {
+    "namedStrategies": {},
+    "strategyComponents": null,
+    "grammarVersion": "V1",
+    "strategy": {
+      "filterNode": {
+        "nodeInput": {
+          "source": { "objectTypeId": "{{objectTypeId}}", "type": "objectTypeId" },
+          "type": "source"
+        },
+        "filter": {
+          "orFilterRule": {
+            "filters": "{{#each values}}{{buildEqualsFilter objectTypeId propertyId this caseSensitive}}{{/each}}"
+          },
+          "type": "orFilterRule"
+        },
+        "joinFilterInputs": {}
+      },
+      "type": "filterNode"
+    },
+    "workflowRid": "{{workflowRid}}",
+    "effect": {
+      "v2": {
+        "outputAndVersion": {
+          "outputId": "{{outputId}}",
+          "outputVersion": "{{outputVersion:0.1.0}}",
+          "workflowRid": "{{workflowRid}}"
+        },
+        "parameterValues": {}
+      },
+      "type": "v2"
+    }
+  },
+  "_note": "The templateLogic uses pseudo-handlebars syntax. The actual template engine will build the filters array programmatically."
+}

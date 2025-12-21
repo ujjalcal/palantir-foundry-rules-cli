@@ -1,0 +1,10 @@
+{
+  "name": "High Risk Products",
+  "description": "Matches products with high risk level",
+  "keywords": "risk,high,simple",
+  "template": "string-equals",
+  "params": {
+    "propertyId": "risk_level",
+    "value": "high"
+  }
+}

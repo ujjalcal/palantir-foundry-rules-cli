@@ -1,0 +1,83 @@
+{
+  "$schema": "../../config/workflow-schema.json#/definitions/templateConfig",
+  "name": "string-equals",
+  "description": "Simple string equality filter - matches when a string property equals a specific value",
+  "category": "string",
+  "parameters": {
+    "propertyId": {
+      "type": "string",
+      "required": true,
+      "description": "The property to filter on",
+      "placeholder": "risk_level"
+    },
+    "value": {
+      "type": "string",
+      "required": true,
+      "description": "The value to match",
+      "placeholder": "high"
+    },
+    "caseSensitive": {
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether the match should be case-sensitive"
+    }
+  },
+  "example": {
+    "propertyId": "risk_level",
+    "value": "high"
+  },
+  "templateLogic": {
+    "namedStrategies": {},
+    "strategyComponents": null,
+    "grammarVersion": "V1",
+    "strategy": {
+      "filterNode": {
+        "nodeInput": {
+          "source": { "objectTypeId": "{{objectTypeId}}", "type": "objectTypeId" },
+          "type": "source"
+        },
+        "filter": {
+          "columnFilterRule": {
+            "column": {
+              "objectProperty": {
+                "objectTypeId": "{{objectTypeId}}",
+                "propertyTypeId": "{{propertyId}}"
+              },
+              "type": "objectProperty"
+            },
+            "filter": {
+              "stringColumnFilter": {
+                "type": "EQUALS",
+                "caseSensitive": "{{caseSensitive:false}}",
+                "ignoreWhitespace": false,
+                "values": ["{{value}}"],
+                "macro": {
+                  "function": "VALUE",
+                  "inputType": "ALL_TYPES",
+                  "outputType": "ALL_TYPES"
+                }
+              },
+              "type": "stringColumnFilter"
+            }
+          },
+          "type": "columnFilterRule"
+        },
+        "joinFilterInputs": {}
+      },
+      "type": "filterNode"
+    },
+    "workflowRid": "{{workflowRid}}",
+    "effect": {
+      "v2": {
+        "outputAndVersion": {
+          "outputId": "{{outputId}}",
+          "outputVersion": "{{outputVersion:0.1.0}}",
+          "workflowRid": "{{workflowRid}}"
+        },
+        "parameterValues": {}
+      },
+      "type": "v2"
+    }
+  }
+}
