@@ -1,0 +1,11 @@
+{
+  "$schema": "../config/rule-input-schema.json",
+  "name": "Active-Categories",
+  "description": "Filter items in specific categories",
+  "keywords": "category,filter,multiple",
+  "template": "string-or",
+  "params": {
+    "propertyId": "category",
+    "values": ["electronics", "software", "services"]
+  }
+}

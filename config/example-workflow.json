@@ -2,31 +2,32 @@
   "$schema": "./workflow-schema.json",
   "version": "1.0.0",
   "workflow": {
-    "name": "Demo Product Workflow",
-    "workflowRid": "ri.taurus.main.workflow.13ec15c0-2ddc-4a5b-88d4-8f32b545194a",
+    "name": "Example Rules Workflow",
+    "workflowRid": "ri.taurus.main.workflow.00000000-0000-0000-0000-000000000000",
     "objectType": {
-      "id": "hvznujj5.demo-product",
+      "id": "namespace.your-object-type",
       "dynamicLookup": false,
       "properties": [
-        { "id": "product_id", "type": "string", "description": "Unique product identifier" },
-        { "id": "product_name", "type": "string", "description": "Product display name" },
-        { "id": "category", "type": "string", "description": "Product category" },
-        { "id": "price", "type": "number", "description": "Product price" },
-        { "id": "risk_level", "type": "string", "description": "Risk assessment level" },
-        { "id": "in_stock", "type": "boolean", "description": "Stock availability" }
+        { "id": "id", "type": "string", "description": "Unique identifier" },
+        { "id": "name", "type": "string", "description": "Display name" },
+        { "id": "category", "type": "string", "description": "Category classification" },
+        { "id": "amount", "type": "number", "description": "Numeric amount" },
+        { "id": "status", "type": "string", "description": "Current status" },
+        { "id": "is_active", "type": "boolean", "description": "Active flag" }
       ]
     },
     "output": {
-      "id": "203eb1b4-67fe-411b-9f35-73218d0662d6",
+      "id": "00000000-0000-0000-0000-000000000000",
       "version": "0.1.0",
       "parameters": [
-        { "id": "status", "type": "string", "defaultValue": "not approved" }
+        { "id": "approval_status", "type": "string", "defaultValue": "pending" },
+        { "id": "priority", "type": "string", "defaultValue": "normal" }
       ]
     }
   },
   "foundry": {
-    "url": "https://ujjal-test.usw-23.palantirfoundry.com",
-    "ontologyRid": "ri.ontology.main.ontology.a0e4fce1-dea7-4947-84bd-9f67d37a508e",
+    "url": "https://your-stack.palantirfoundry.com",
+    "ontologyRid": "ri.ontology.main.ontology.00000000-0000-0000-0000-000000000000",
     "tokenEnvVar": "FOUNDRY_TOKEN"
   },
   "sdk": {
@@ -50,9 +51,9 @@
     "supportedNullFilters": ["NULL", "NOT_NULL"]
   },
   "conventions": {
-    "proposalIdPrefix": "PROP-DEMO-",
-    "ruleIdPrefix": "RULE-DEMO-",
-    "defaultAuthor": "proposal-cli-v2",
+    "proposalIdPrefix": "PROP-",
+    "ruleIdPrefix": "RULE-",
+    "defaultAuthor": "proposal-cli",
     "defaultDescription": "Created via CLI",
     "defaultKeywords": "cli-created"
   },

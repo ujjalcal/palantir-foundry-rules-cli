@@ -20,19 +20,19 @@
           "description": "Human-readable name for the rule",
           "minLength": 1,
           "maxLength": 200,
-          "examples": ["FNMA-B72-Insurance-Review", "High-Risk-Liens-Filter"]
+          "examples": ["High-Priority-Items", "Active-Categories-Filter"]
         },
         "description": {
           "type": "string",
           "description": "Detailed description of what the rule does",
           "maxLength": 500,
-          "examples": ["Flag insurance-related title exceptions for review per Fannie Mae Selling Guide B7-2"]
+          "examples": ["Filter items with high priority status for review"]
         },
         "keywords": {
           "type": "string",
           "description": "Comma-separated keywords for categorization and search",
           "pattern": "^[a-zA-Z0-9-_,]+$",
-          "examples": ["fannie-mae,b7-2,insurance,title-cure"]
+          "examples": ["priority,high,filter"]
         },
         "template": {
           "type": "string",
@@ -61,12 +61,12 @@
         "propertyId": {
           "type": "string",
           "description": "The property ID to filter on (from object type definition)",
-          "examples": ["exceptionCategory", "cureType", "riskLevel"]
+          "examples": ["status", "category", "amount"]
         },
         "value": {
           "type": "string",
           "description": "The value to match",
-          "examples": ["insurance", "lien", "high"]
+          "examples": ["active", "pending", "high"]
         },
         "caseSensitive": {
           "type": "boolean",
@@ -91,7 +91,7 @@
           "description": "List of values to match (OR logic)",
           "items": { "type": "string" },
           "minItems": 1,
-          "examples": [["insurance", "liens", "easements"]]
+          "examples": [["electronics", "software", "services"]]
         },
         "caseSensitive": {
           "type": "boolean",
@@ -236,7 +236,7 @@
                 "objectTypeId": {
                   "type": "string",
                   "description": "Object type ID from workflow config",
-                  "examples": ["hvznujj5.title-cure", "hvznujj5.demo-product"]
+                  "examples": ["namespace.your-object-type", "namespace.demo-product"]
                 }
               }
             }
@@ -489,23 +489,23 @@
   },
   "examples": [
     {
-      "name": "FNMA-B72-Insurance-Review",
-      "description": "Flag insurance-related title exceptions for review per Fannie Mae Selling Guide B7-2",
-      "keywords": "fannie-mae,b7-2,insurance,title-cure",
+      "name": "High-Priority-Items",
+      "description": "Filter items with high priority status for review",
+      "keywords": "priority,high,filter",
       "template": "string-equals",
       "params": {
-        "propertyId": "exceptionCategory",
-        "value": "insurance"
+        "propertyId": "status",
+        "value": "high"
       }
     },
     {
-      "name": "High-Risk-Liens-Filter",
-      "description": "Match any lien or encumbrance category",
-      "keywords": "liens,encumbrances,risk",
+      "name": "Active-Categories-Filter",
+      "description": "Match items in specific categories",
+      "keywords": "category,filter,multiple",
       "template": "string-or",
       "params": {
-        "propertyId": "exceptionCategory",
-        "values": ["liens", "encumbrances", "judgments"]
+        "propertyId": "category",
+        "values": ["electronics", "software", "services"]
       }
     }
   ]

@@ -14,7 +14,7 @@ A config-driven CLI and library for managing Foundry Rules proposals. Create, va
 ## Installation
 
 ```bash
-npm install @title-review-app/foundry-rules-cli
+npm install foundry-rules-cli
 ```
 
 Or use directly from source:
@@ -37,21 +37,21 @@ export FOUNDRY_URL=https://your-stack.palantirfoundry.com
 npx foundry-rules init ri.taurus.main.workflow.xxxxx "My Workflow"
 
 # Or use an existing config - list available templates
-npx foundry-rules --config config/title-cure.json template --list
+npx foundry-rules --config config/example-workflow.json template --list
 
 # Generate a template file
-npx foundry-rules --config config/title-cure.json template string-equals > my-rule.json
+npx foundry-rules --config config/example-workflow.json template string-equals > my-rule.json
 
 # Edit the generated file with your rule values
 
 # Validate before submitting
-npx foundry-rules --config config/title-cure.json validate my-rule.json
+npx foundry-rules --config config/example-workflow.json validate my-rule.json
 
 # Create proposal
-npx foundry-rules --config config/title-cure.json create my-rule.json
+npx foundry-rules --config config/example-workflow.json create my-rule.json
 
 # List proposals
-npx foundry-rules --config config/title-cure.json list-proposals OPEN
+npx foundry-rules --config config/example-workflow.json list-proposals OPEN
 ```
 
 ## Commands
@@ -80,12 +80,12 @@ For common filter patterns, use templates:
 ```json
 {
   "$schema": "../config/rule-input-schema.json",
-  "name": "High Risk Products",
-  "description": "Matches products with high risk level",
-  "keywords": "risk,high,filter",
+  "name": "High Priority Items",
+  "description": "Filter items with high priority status",
+  "keywords": "priority,high,filter",
   "template": "string-equals",
   "params": {
-    "propertyId": "riskLevel",
+    "propertyId": "status",
     "value": "high"
   }
 }
@@ -107,17 +107,17 @@ For complex rules with AND/OR combinations:
 ```json
 {
   "$schema": "../config/rule-input-schema.json",
-  "name": "FNMA-B72-High-Risk-Insurance-Band2",
-  "description": "Flag high-risk insurance exceptions in Band 2",
-  "keywords": "fannie-mae,b7-2,insurance,high-risk,band-2",
+  "name": "High-Value-Active-Items",
+  "description": "Filter active items with high value using AND combination",
+  "keywords": "complex,and,high-value,active",
   "grammarVersion": "V1",
-  "workflowRid": "ri.taurus.main.workflow.f4c74a0a-583c-4499-aba3-1989b7f0a273",
+  "workflowRid": "ri.taurus.main.workflow.00000000-0000-0000-0000-000000000000",
   "strategy": {
     "type": "filterNode",
     "filterNode": {
       "nodeInput": {
         "type": "source",
-        "source": { "type": "objectTypeId", "objectTypeId": "hvznujj5.title-cure" }
+        "source": { "type": "objectTypeId", "objectTypeId": "namespace.your-object-type" }
       },
       "filter": {
         "type": "andFilterRule",
@@ -135,7 +135,7 @@ For complex rules with AND/OR combinations:
 }
 ```
 
-See `samples/title-cure-complex-and.json` for a complete example.
+See `samples/complex-and-filter.json` for a complete example.
 
 ## Configuration
 
@@ -148,14 +148,14 @@ Each workflow needs a JSON config file:
   "$schema": "./workflow-schema.json",
   "version": "1.0.0",
   "workflow": {
-    "name": "Title Cure Workflow",
+    "name": "Example Workflow",
     "workflowRid": "ri.taurus.main.workflow.xxxxx",
     "objectType": {
-      "id": "hvznujj5.title-cure",
+      "id": "namespace.your-object-type",
       "properties": [
-        { "id": "exceptionCategory", "type": "string" },
-        { "id": "riskLevel", "type": "string" },
-        { "id": "band", "type": "number" }
+        { "id": "category", "type": "string" },
+        { "id": "status", "type": "string" },
+        { "id": "amount", "type": "number" }
       ]
     },
     "output": {
@@ -234,14 +234,15 @@ foundry-rules-cli/
 │       ├── init/                # Init command (config generator)
 │       └── compression.ts       # LZ-string compression
 ├── config/
-│   ├── title-cure.json          # Title cure workflow config
+│   ├── example-workflow.json    # Example workflow config
 │   ├── demo-product.json        # Demo workflow config
 │   ├── rule-input-schema.json   # JSON Schema for rule inputs
 │   └── workflow-schema.json     # JSON Schema for workflow configs
 ├── samples/                     # Example rule files
-│   ├── title-cure-insurance.json
-│   ├── title-cure-complex-and.json
-│   └── ...
+│   ├── simple-string-filter.json
+│   ├── multi-value-filter.json
+│   ├── numeric-range-filter.json
+│   └── complex-and-filter.json
 ├── tests/                       # Test files
 │   └── schema-validation.test.ts
 ├── dist/                        # Compiled output
@@ -260,22 +261,22 @@ import {
   compress,
   decompress,
   buildFromTemplate
-} from '@title-review-app/foundry-rules-cli';
+} from 'foundry-rules-cli';
 
 // Load config
-const config = loadConfig('config/title-cure.json');
+const config = loadConfig('config/example-workflow.json');
 
 // Validate a proposal
 const validation = validateProposal({
   template: 'string-equals',
-  params: { propertyId: 'riskLevel', value: 'high' }
+  params: { propertyId: 'status', value: 'high' }
 }, config);
 
 // Create proposal
 const result = await createProposal({
   name: 'My Rule',
   template: 'string-equals',
-  params: { propertyId: 'riskLevel', value: 'high' }
+  params: { propertyId: 'status', value: 'high' }
 }, config);
 ```
 
@@ -292,10 +293,10 @@ npm test
 npm run test:watch
 
 # Run from source (development)
-npx tsx src/proposal-cli-v2.ts --config config/title-cure.json <command>
+npx tsx src/proposal-cli-v2.ts --config config/example-workflow.json <command>
 
 # Run CLI in dev mode
-npm run cli:dev -- --config config/title-cure.json <command>
+npm run cli:dev -- --config config/example-workflow.json <command>
 ```
 
 ## Environment Variables

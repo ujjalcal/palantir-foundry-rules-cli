@@ -1,0 +1,11 @@
+{
+  "$schema": "../config/rule-input-schema.json",
+  "name": "High-Value-Items",
+  "description": "Filter items with amount greater than 1000",
+  "keywords": "amount,high-value,filter",
+  "template": "numeric-range",
+  "params": {
+    "propertyId": "amount",
+    "min": 1000
+  }
+}

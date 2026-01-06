@@ -318,7 +318,7 @@ describe('Rule Input JSON Schema Validation', () => {
 
       test('should accept valid keywords pattern', () => {
         const input = {
-          keywords: 'fannie-mae,b7-2,insurance,title_cure',
+          keywords: 'priority,high,filter,status_check',
           template: 'string-equals',
           params: {
             propertyId: 'test',
@@ -334,8 +334,8 @@ describe('Rule Input JSON Schema Validation', () => {
 
   describe('Sample Files Validation', () => {
 
-    test('should validate samples/title-cure-insurance.json', () => {
-      const samplePath = path.join(__dirname, '../samples/title-cure-insurance.json');
+    test('should validate samples/simple-string-filter.json', () => {
+      const samplePath = path.join(__dirname, '../samples/simple-string-filter.json');
       const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
       delete sample.$schema;
 
@@ -343,16 +343,32 @@ describe('Rule Input JSON Schema Validation', () => {
       expect(result.valid).toBe(true);
     });
 
-    test('should validate samples/complex-price-risk.json if it exists', () => {
-      const samplePath = path.join(__dirname, '../samples/complex-price-risk.json');
-      if (fs.existsSync(samplePath)) {
-        const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
-        delete sample.$schema;
+    test('should validate samples/multi-value-filter.json', () => {
+      const samplePath = path.join(__dirname, '../samples/multi-value-filter.json');
+      const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
+      delete sample.$schema;
 
-        const result = validateInput(sample);
-        // This is raw logic format, should also be valid
-        expect(result.valid).toBe(true);
-      }
+      const result = validateInput(sample);
+      expect(result.valid).toBe(true);
+    });
+
+    test('should validate samples/numeric-range-filter.json', () => {
+      const samplePath = path.join(__dirname, '../samples/numeric-range-filter.json');
+      const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
+      delete sample.$schema;
+
+      const result = validateInput(sample);
+      expect(result.valid).toBe(true);
+    });
+
+    test('should validate samples/complex-and-filter.json', () => {
+      const samplePath = path.join(__dirname, '../samples/complex-and-filter.json');
+      const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
+      delete sample.$schema;
+
+      const result = validateInput(sample);
+      // This is raw logic format, should also be valid
+      expect(result.valid).toBe(true);
     });
   });
 });

@@ -30,7 +30,6 @@
     "tokenEnvVar": "FOUNDRY_TOKEN"
   },
   "sdk": {
-    "packageName": "@title-review-app/sdk",
     "archetypes": {
       "proposal": "FoundryRulesProposalObjectArchetypeId1_7",
       "rule": "FoundryRulesRuleObjectArchetypeId1_7"
