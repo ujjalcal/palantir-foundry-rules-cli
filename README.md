@@ -1,19 +1,20 @@
 # Foundry Rules CLI
 
-A config-driven CLI for managing Foundry Rules proposals. Create, validate, and manage rule proposals programmatically across any Foundry Rules workflow version.
+A config-driven CLI and library for managing Foundry Rules proposals. Create, validate, and manage rule proposals programmatically across any Foundry Rules workflow.
 
 ## Features
 
-- **Version-Agnostic**: Works with any Foundry Rules version (1_2, 1_3, 1_4, 1_5, etc.)
 - **Config-Driven**: All workflow-specific values loaded from JSON config files
-- **Dynamic API Calls**: Uses Platform SDK for dynamic object/action access
-- **Template Support**: Built-in templates for common rule patterns
-- **Validation**: Comprehensive validation before submission
+- **Init Command**: Auto-generate starter configs for new workflows
+- **Template Support**: Built-in templates for common rule patterns (string-equals, string-or, numeric-range, null-check)
+- **JSON Schema Validation**: Rule inputs validated against schema before submission
+- **Complex Rules**: Support for AND/OR combinations with raw logic format
+- **Library Mode**: Import functions for use in TypeScript Functions or Node.js
 
 ## Installation
 
 ```bash
-npm install @foundry-tools/foundry-rules-cli
+npm install @title-review-app/foundry-rules-cli
 ```
 
 Or use directly from source:
@@ -30,29 +31,34 @@ npm run build
 ```bash
 # Set your Foundry token
 export FOUNDRY_TOKEN=your_token_here
+export FOUNDRY_URL=https://your-stack.palantirfoundry.com
 
-# List available templates
-npx foundry-rules --config config/rule2.json template --list
+# Initialize a new workflow config
+npx foundry-rules init ri.taurus.main.workflow.xxxxx "My Workflow"
+
+# Or use an existing config - list available templates
+npx foundry-rules --config config/title-cure.json template --list
 
 # Generate a template file
-npx foundry-rules --config config/rule2.json template string-equals > my-rule.json
+npx foundry-rules --config config/title-cure.json template string-equals > my-rule.json
 
 # Edit the generated file with your rule values
 
 # Validate before submitting
-npx foundry-rules --config config/rule2.json validate my-rule.json
+npx foundry-rules --config config/title-cure.json validate my-rule.json
 
 # Create proposal
-npx foundry-rules --config config/rule2.json create my-rule.json
+npx foundry-rules --config config/title-cure.json create my-rule.json
 
 # List proposals
-npx foundry-rules --config config/rule2.json list-proposals OPEN
+npx foundry-rules --config config/title-cure.json list-proposals OPEN
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
+| `init <workflow-rid> <name>` | Generate starter config for a workflow |
 | `create <file>` | Create proposal from JSON file |
 | `validate <file>` | Validate JSON without submitting |
 | `template <name>` | Generate sample template |
@@ -65,24 +71,97 @@ npx foundry-rules --config config/rule2.json list-proposals OPEN
 | `batch-reject <pattern>` | Reject matching proposals |
 | `config --show` | Show current configuration |
 
+## Rule Input Formats
+
+### Template-Based (Simple)
+
+For common filter patterns, use templates:
+
+```json
+{
+  "$schema": "../config/rule-input-schema.json",
+  "name": "High Risk Products",
+  "description": "Matches products with high risk level",
+  "keywords": "risk,high,filter",
+  "template": "string-equals",
+  "params": {
+    "propertyId": "riskLevel",
+    "value": "high"
+  }
+}
+```
+
+### Available Templates
+
+| Template | Description | Required Params | Optional Params |
+|----------|-------------|-----------------|-----------------|
+| `string-equals` | Match exact string value | `propertyId`, `value` | `caseSensitive` |
+| `string-or` | Match any of multiple values | `propertyId`, `values[]` | `caseSensitive` |
+| `numeric-range` | Match numeric range | `propertyId`, `min` or `max` | both `min` and `max` |
+| `null-check` | Check if null/not null | `propertyId` | `isNull` (default: true) |
+
+### Raw Logic (Complex Rules)
+
+For complex rules with AND/OR combinations:
+
+```json
+{
+  "$schema": "../config/rule-input-schema.json",
+  "name": "FNMA-B72-High-Risk-Insurance-Band2",
+  "description": "Flag high-risk insurance exceptions in Band 2",
+  "keywords": "fannie-mae,b7-2,insurance,high-risk,band-2",
+  "grammarVersion": "V1",
+  "workflowRid": "ri.taurus.main.workflow.f4c74a0a-583c-4499-aba3-1989b7f0a273",
+  "strategy": {
+    "type": "filterNode",
+    "filterNode": {
+      "nodeInput": {
+        "type": "source",
+        "source": { "type": "objectTypeId", "objectTypeId": "hvznujj5.title-cure" }
+      },
+      "filter": {
+        "type": "andFilterRule",
+        "andFilterRule": {
+          "filters": [
+            { "type": "columnFilterRule", "columnFilterRule": { ... } },
+            { "type": "columnFilterRule", "columnFilterRule": { ... } },
+            { "type": "columnFilterRule", "columnFilterRule": { ... } }
+          ]
+        }
+      }
+    }
+  },
+  "effect": { ... }
+}
+```
+
+See `samples/title-cure-complex-and.json` for a complete example.
+
 ## Configuration
 
 ### Workflow Config Structure
 
-Each workflow needs a JSON config file that defines:
+Each workflow needs a JSON config file:
 
 ```json
 {
   "$schema": "./workflow-schema.json",
   "version": "1.0.0",
   "workflow": {
-    "name": "My Workflow",
+    "name": "Title Cure Workflow",
     "workflowRid": "ri.taurus.main.workflow.xxxxx",
     "objectType": {
-      "id": "my-object-type",
-      "properties": [...]
+      "id": "hvznujj5.title-cure",
+      "properties": [
+        { "id": "exceptionCategory", "type": "string" },
+        { "id": "riskLevel", "type": "string" },
+        { "id": "band", "type": "number" }
+      ]
     },
-    "output": { ... }
+    "output": {
+      "id": "821a6877-c5bf-43c9-9bc4-bc967ef518b4",
+      "version": "0.1.0"
+    }
   },
   "foundry": {
     "url": "https://your-stack.palantirfoundry.com",
@@ -91,124 +170,114 @@ Each workflow needs a JSON config file that defines:
   },
   "sdk": {
     "archetypes": {
-      "proposal": "FoundryRulesProposalObjectArchetypeId1_5",
-      "rule": "FoundryRulesRuleObjectArchetypeId1_5"
+      "proposal": "FoundryRulesProposalObjectArchetypeId1_7",
+      "rule": "FoundryRulesRuleObjectArchetypeId1_7"
     },
     "actions": {
-      "createProposal": "foundry-rules-create-add-proposal-1-2",
-      "approveProposal": "foundry-rules-approve-add-proposal-1-2",
-      "rejectProposal": "foundry-rules-reject-proposal-1-2",
-      "editProposal": "foundry-rules-edit-proposal-1-2"
+      "createProposal": "foundry-rules-create-add-proposal-1-1",
+      "approveProposal": "foundry-rules-approve-add-proposal-1-1",
+      "rejectProposal": "foundry-rules-reject-proposal-1-1",
+      "editProposal": "foundry-rules-edit-proposal-1-1"
     }
   },
-  "validation": { ... },
-  "conventions": { ... }
+  "validation": {
+    "grammarVersion": "V1",
+    "supportedStrategyTypes": ["filterNode", "windowNode", "aggregationNode"],
+    "supportedStringFilters": ["EQUALS", "CONTAINS", "MATCHES", "EQUALS_WITH_WILDCARDS"],
+    "supportedNumericFilters": ["EQUALS", "GREATER_THAN", "LESS_THAN", "GREATER_THAN_OR_EQUAL", "LESS_THAN_OR_EQUAL"],
+    "supportedNullFilters": ["NULL", "NOT_NULL"]
+  },
+  "conventions": {
+    "proposalIdPrefix": "PROP-TITLE-CURE-",
+    "ruleIdPrefix": "RULE-TITLE-CURE-",
+    "defaultAuthor": "proposal-cli-v2"
+  }
 }
 ```
 
-### SDK Configuration (Key Section)
+### SDK Configuration (Critical)
 
-The `sdk` section is critical for targeting the correct Foundry Rules version:
+The `sdk` section must match your Foundry Rules installation:
 
 ```json
 "sdk": {
   "archetypes": {
-    "proposal": "FoundryRulesProposalObjectArchetypeId1_5",
-    "rule": "FoundryRulesRuleObjectArchetypeId1_5"
+    "proposal": "FoundryRulesProposalObjectArchetypeId1_7",
+    "rule": "FoundryRulesRuleObjectArchetypeId1_7"
   },
   "actions": {
-    "createProposal": "foundry-rules-create-add-proposal-1-2",
-    "approveProposal": "foundry-rules-approve-add-proposal-1-2",
-    "rejectProposal": "foundry-rules-reject-proposal-1-2",
-    "editProposal": "foundry-rules-edit-proposal-1-2"
+    "createProposal": "foundry-rules-create-add-proposal-1-1",
+    "approveProposal": "foundry-rules-approve-add-proposal-1-1",
+    "rejectProposal": "foundry-rules-reject-proposal-1-1",
+    "editProposal": "foundry-rules-edit-proposal-1-1"
   }
 }
 ```
 
 **Finding Your API Names:**
-
-Use Foundry's Ontology search or the MCP tools to find the correct API names:
-- Object types: Look for `FoundryRulesProposalObjectArchetypeId{version}`
-- Actions: Look for `foundry-rules-{action}-proposal-{version}`
-
-**Common Version Mappings:**
-
-| Rules Version | Object Type Suffix | Action Suffix |
-|--------------|-------------------|---------------|
-| 1.1 | `1_1` | `1` |
-| 1.2 | `1_2` | `1-1` |
-| 1.3 | `1_3` | `1-1` |
-| 1.4 | `1_4` | `1-1` |
-| 1.5 | `1_5` | `1-2` |
-
-## Templates
-
-| Template | Description | Parameters |
-|----------|-------------|------------|
-| `string-equals` | Match exact string value | `propertyId`, `value` |
-| `string-or` | Match any of multiple values | `propertyId`, `values[]` |
-| `numeric-range` | Match numeric range | `propertyId`, `min?`, `max?` |
-| `null-check` | Check if null/not null | `propertyId`, `isNull?` |
-
-### Template-Based Rule File
-
-```json
-{
-  "name": "High Risk Products",
-  "description": "Matches products with high risk level",
-  "keywords": "risk,high",
-  "template": "string-equals",
-  "params": {
-    "propertyId": "risk_level",
-    "value": "high"
-  }
-}
-```
-
-### Raw Rule Logic
-
-For complex rules (AND/OR combinations), use raw rule logic format. See `samples/complex-price-risk.json` for an example.
+- Use Foundry's Ontology Manager to find object types matching `FoundryRulesProposal*`
+- Look for the highest version that is NOT trashed
+- Action names follow pattern: `foundry-rules-{action}-proposal-{version}`
 
 ## Project Structure
 
 ```
 foundry-rules-cli/
 ├── src/
-│   ├── proposal-cli-v2.ts       # Main CLI
+│   ├── proposal-cli-v2.ts       # Main CLI implementation
+│   ├── index.ts                 # Library exports
 │   ├── bin/cli.ts               # CLI entry point
 │   └── v2/
 │       ├── config/              # Config loading & types
 │       ├── validation/          # Schema, property, filter validation
 │       ├── templates/           # Template builders
+│       ├── init/                # Init command (config generator)
 │       └── compression.ts       # LZ-string compression
 ├── config/
-│   ├── rule2.json               # Example workflow config
-│   └── workflow-schema.json     # JSON Schema for configs
-├── prompts/templates/           # Template definitions
+│   ├── title-cure.json          # Title cure workflow config
+│   ├── demo-product.json        # Demo workflow config
+│   ├── rule-input-schema.json   # JSON Schema for rule inputs
+│   └── workflow-schema.json     # JSON Schema for workflow configs
 ├── samples/                     # Example rule files
+│   ├── title-cure-insurance.json
+│   ├── title-cure-complex-and.json
+│   └── ...
+├── tests/                       # Test files
+│   └── schema-validation.test.ts
 ├── dist/                        # Compiled output
 └── package.json
 ```
 
-## Environment Variables
+## Library Usage
 
-| Variable | Description |
-|----------|-------------|
-| `FOUNDRY_TOKEN` | Foundry API token (required for API calls) |
+Import functions for programmatic use:
 
-## Supported Filter Types
+```typescript
+import {
+  loadConfig,
+  validateProposal,
+  createProposal,
+  compress,
+  decompress,
+  buildFromTemplate
+} from '@title-review-app/foundry-rules-cli';
 
-| Category | Types |
-|----------|-------|
-| String | `EQUALS`, `CONTAINS`, `MATCHES`, `EQUALS_WITH_WILDCARDS` |
-| Numeric | `EQUALS`, `GREATER_THAN`, `LESS_THAN`, `GREATER_THAN_OR_EQUAL`, `LESS_THAN_OR_EQUAL` |
-| Null | `NULL`, `NOT_NULL` |
+// Load config
+const config = loadConfig('config/title-cure.json');
 
-## Strategy Types
+// Validate a proposal
+const validation = validateProposal({
+  template: 'string-equals',
+  params: { propertyId: 'riskLevel', value: 'high' }
+}, config);
 
-- `filterNode` - Filter objects based on conditions
-- `windowNode` - Apply window functions (SUM, AVG, etc.)
-- `aggregationNode` - Group and aggregate data
+// Create proposal
+const result = await createProposal({
+  name: 'My Rule',
+  template: 'string-equals',
+  params: { propertyId: 'riskLevel', value: 'high' }
+}, config);
+```
 
 ## Development
 
@@ -216,32 +285,65 @@ foundry-rules-cli/
 # Build
 npm run build
 
-# Run from source (development)
-npx tsx src/proposal-cli-v2.ts --config config/rule2.json <command>
+# Run tests
+npm test
 
-# Run from built output
-node dist/proposal-cli-v2.js --config config/rule2.json <command>
+# Run tests in watch mode
+npm run test:watch
+
+# Run from source (development)
+npx tsx src/proposal-cli-v2.ts --config config/title-cure.json <command>
+
+# Run CLI in dev mode
+npm run cli:dev -- --config config/title-cure.json <command>
 ```
 
-## Architecture
+## Environment Variables
 
-The CLI uses the Palantir Platform SDK (`@osdk/foundry.ontologies`) for dynamic API access:
-
-- **`OntologyObjectsV2.search()`** - Query proposals/rules by object type API name
-- **`Actions.apply()`** - Execute actions by action API name
-
-This allows the CLI to work with any Foundry Rules version without code changes - just update the config file.
+| Variable | Description |
+|----------|-------------|
+| `FOUNDRY_TOKEN` | Foundry API token (required for API calls) |
+| `FOUNDRY_URL` | Foundry stack URL (for init command) |
+| `ONTOLOGY_RID` | Ontology RID (optional, has default) |
 
 ## Troubleshooting
 
 ### "Object type not found" (404)
 - Verify the `sdk.archetypes.proposal` value matches your ontology
-- Use Foundry Ontology Manager to find the correct API name
+- Check that the archetype is not trashed (use Foundry Ontology Manager)
+- Use the latest version (currently v1.7)
 
 ### "Action not found"
 - Verify the `sdk.actions.*` values match your ontology
-- Check that the action exists and you have permissions
+- Action names use kebab-case: `foundry-rules-create-add-proposal-1-1`
+- Check that you have permissions to execute the action
 
 ### Token issues
-- Ensure `FOUNDRY_TOKEN` is exported in your shell
+- Ensure `FOUNDRY_TOKEN` is exported: `export FOUNDRY_TOKEN=xxx`
 - Verify the token has `api:ontologies-read` and `api:ontologies-write` scopes
+- Token should not be expired
+
+### Proposals not visible in UI
+- Ensure you're on the correct branch in Foundry Rules App
+- Check that the archetype version matches the Rules App installation
+- Use `list-proposals` to verify proposals were created
+
+## Testing
+
+The project uses Vitest for testing:
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Run specific test file
+npm test -- tests/schema-validation.test.ts
+```
+
+Test coverage includes:
+- JSON Schema validation for all template types
+- Field constraints (name length, keywords pattern)
+- Sample file validation

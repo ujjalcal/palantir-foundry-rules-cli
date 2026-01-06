@@ -46,6 +46,7 @@ import { validateProperties, getPropertySummary } from './v2/validation/properti
 import { validateFilterTypes, getFilterSummary } from './v2/validation/filters.js';
 import { compress, decompress } from './v2/compression.js';
 import { buildFromTemplate, getBuiltInTemplates, wrapFilterAsRuleLogic } from './v2/templates/index.js';
+import { initWorkflowConfig, quickInit } from './v2/init/index.js';
 
 // =============================================================================
 // CLI ARGUMENT PARSING
@@ -771,6 +772,29 @@ function cmdConfigShow(config: ResolvedConfig) {
   console.log(`  Default Author: ${config.conventions.defaultAuthor}`);
 }
 
+function cmdInit(workflowRid: string, name: string, outputDir?: string) {
+  const foundryUrl = process.env.FOUNDRY_URL || process.env.VITE_FOUNDRY_URL || '';
+  const ontologyRid = process.env.ONTOLOGY_RID || 'ri.ontology.main.ontology.a0e4fce1-dea7-4947-84bd-9f67d37a508e';
+
+  if (!foundryUrl) {
+    console.error('Error: FOUNDRY_URL environment variable required');
+    process.exit(1);
+  }
+
+  const configPath = initWorkflowConfig({
+    workflowRid,
+    name,
+    foundryUrl,
+    ontologyRid,
+    outputDir
+  });
+
+  console.log(`\nNext steps:`);
+  console.log(`  1. Edit the generated config: ${configPath}`);
+  console.log(`  2. Fill in TODO values from your Foundry Rules workflow`);
+  console.log(`  3. Run: npx tsx src/proposal-cli-v2.ts --config ${configPath} template --list`);
+}
+
 function showHelp() {
   console.log(`
 Proposal CLI v2 - Generic, Config-Driven Rule Proposal Management
@@ -782,6 +806,7 @@ Options:
   --config <path>    Path to workflow config JSON file
 
 Commands:
+  init <workflow-rid> <name>   Auto-generate config from Foundry workflow
   create <json-file>           Create proposal from JSON file
   decompress <id>              Decompress rule logic from existing proposal
   validate <json-file>         Validate JSON against schema
@@ -922,6 +947,15 @@ async function main() {
         console.error('Usage: proposal-cli-v2 config --show|--validate');
         process.exit(1);
       }
+      break;
+
+    case 'init':
+      if (!args[0] || !args[1]) {
+        console.error('Usage: proposal-cli-v2 init <workflow-rid> <name> [output-dir]');
+        console.error('Example: proposal-cli-v2 init ri.taurus.main.workflow.xxx "My Workflow"');
+        process.exit(1);
+      }
+      cmdInit(args[0], args[1], args[2]);
       break;
 
     default:

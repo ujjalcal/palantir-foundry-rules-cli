@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "workflow": {
     "name": "Title Cure Rules Workflow",
-    "workflowRid": "ri.taurus.main.workflow.e3df9196-bf37-4c37-bd02-1ca242c8f4cd",
+    "workflowRid": "ri.taurus.main.workflow.f4c74a0a-583c-4499-aba3-1989b7f0a273",
     "objectType": {
       "id": "hvznujj5.title-cure",
       "dynamicLookup": false,
@@ -34,14 +34,14 @@
   "sdk": {
     "packageName": "@title-review-app/sdk",
     "archetypes": {
-      "proposal": "FoundryRulesProposalObjectArchetypeId1_5",
-      "rule": "FoundryRulesRuleObjectArchetypeId1_5"
+      "proposal": "FoundryRulesProposalObjectArchetypeId1_7",
+      "rule": "FoundryRulesRuleObjectArchetypeId1_7"
     },
     "actions": {
-      "createProposal": "foundry-rules-create-add-proposal-1",
-      "approveProposal": "foundry-rules-approve-add-proposal-1",
-      "rejectProposal": "foundry-rules-reject-proposal-1",
-      "editProposal": "foundry-rules-edit-proposal-1"
+      "createProposal": "foundry-rules-create-add-proposal-1-1",
+      "approveProposal": "foundry-rules-approve-add-proposal-1-1",
+      "rejectProposal": "foundry-rules-reject-proposal-1-1",
+      "editProposal": "foundry-rules-edit-proposal-1-1"
     }
   },
   "validation": {

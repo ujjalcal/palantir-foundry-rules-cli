@@ -1,15 +1,15 @@
 {
   "$schema": "../config/rule-input-schema.json",
-  "name": "Expensive High-Risk Products",
-  "description": "Matches high-risk products with price >= 100",
-  "keywords": "price,risk,complex,and-filter",
+  "name": "FNMA-B72-High-Risk-Insurance-Band2",
+  "description": "Flag high-risk insurance exceptions in Band 2 per Fannie Mae Selling Guide B7-2. Requires manual review.",
+  "keywords": "fannie-mae,b7-2,insurance,high-risk,band-2,manual-review",
   "namedStrategies": {},
   "strategyComponents": null,
   "grammarVersion": "V1",
   "strategy": {
     "filterNode": {
       "nodeInput": {
-        "source": { "objectTypeId": "hvznujj5.demo-product", "type": "objectTypeId" },
+        "source": { "objectTypeId": "hvznujj5.title-cure", "type": "objectTypeId" },
         "type": "source"
       },
       "filter": {
@@ -19,8 +19,30 @@
               "columnFilterRule": {
                 "column": {
                   "objectProperty": {
-                    "objectTypeId": "hvznujj5.demo-product",
-                    "propertyTypeId": "risk_level"
+                    "objectTypeId": "hvznujj5.title-cure",
+                    "propertyTypeId": "exceptionCategory"
+                  },
+                  "type": "objectProperty"
+                },
+                "filter": {
+                  "stringColumnFilter": {
+                    "type": "EQUALS",
+                    "caseSensitive": false,
+                    "ignoreWhitespace": false,
+                    "values": ["insurance"],
+                    "macro": { "function": "VALUE", "inputType": "ALL_TYPES", "outputType": "ALL_TYPES" }
+                  },
+                  "type": "stringColumnFilter"
+                }
+              },
+              "type": "columnFilterRule"
+            },
+            {
+              "columnFilterRule": {
+                "column": {
+                  "objectProperty": {
+                    "objectTypeId": "hvznujj5.title-cure",
+                    "propertyTypeId": "riskLevel"
                   },
                   "type": "objectProperty"
                 },
@@ -41,15 +63,15 @@
               "columnFilterRule": {
                 "column": {
                   "objectProperty": {
-                    "objectTypeId": "hvznujj5.demo-product",
-                    "propertyTypeId": "price"
+                    "objectTypeId": "hvznujj5.title-cure",
+                    "propertyTypeId": "band"
                   },
                   "type": "objectProperty"
                 },
                 "filter": {
                   "numericColumnFilter": {
-                    "type": "GREATER_THAN_OR_EQUAL",
-                    "values": [100],
+                    "type": "EQUALS",
+                    "values": [2],
                     "macro": { "function": "VALUE", "inputType": "ALL_TYPES", "outputType": "ALL_TYPES" }
                   },
                   "type": "numericColumnFilter"
@@ -65,13 +87,13 @@
     },
     "type": "filterNode"
   },
-  "workflowRid": "ri.taurus.main.workflow.13ec15c0-2ddc-4a5b-88d4-8f32b545194a",
+  "workflowRid": "ri.taurus.main.workflow.f4c74a0a-583c-4499-aba3-1989b7f0a273",
   "effect": {
     "v2": {
       "outputAndVersion": {
-        "outputId": "203eb1b4-67fe-411b-9f35-73218d0662d6",
+        "outputId": "821a6877-c5bf-43c9-9bc4-bc967ef518b4",
         "outputVersion": "0.1.0",
-        "workflowRid": "ri.taurus.main.workflow.13ec15c0-2ddc-4a5b-88d4-8f32b545194a"
+        "workflowRid": "ri.taurus.main.workflow.f4c74a0a-583c-4499-aba3-1989b7f0a273"
       },
       "parameterValues": {}
     },

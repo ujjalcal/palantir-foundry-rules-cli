@@ -32,14 +32,14 @@
   "sdk": {
     "packageName": "@title-review-app/sdk",
     "archetypes": {
-      "proposal": "FoundryRulesProposalObjectArchetypeId1_4",
-      "rule": "FoundryRulesRuleObjectArchetypeId1_4"
+      "proposal": "FoundryRulesProposalObjectArchetypeId1_7",
+      "rule": "FoundryRulesRuleObjectArchetypeId1_7"
     },
     "actions": {
-      "createProposal": "foundryRulesCreateAddProposal11",
-      "approveProposal": "foundryRulesApproveAddProposal11",
-      "rejectProposal": "foundryRulesRejectProposal11",
-      "editProposal": "foundryRulesEditProposal11"
+      "createProposal": "foundry-rules-create-add-proposal-1-1",
+      "approveProposal": "foundry-rules-approve-add-proposal-1-1",
+      "rejectProposal": "foundry-rules-reject-proposal-1-1",
+      "editProposal": "foundry-rules-edit-proposal-1-1"
     }
   },
   "validation": {
