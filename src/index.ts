@@ -282,3 +282,274 @@ export function resolveConfig(
     return configPathOrObject as unknown as ResolvedConfig;
   }
 }
+
+// =============================================================================
+// PROPOSAL MANAGEMENT FUNCTIONS
+// =============================================================================
+
+/**
+ * Result of proposal rejection
+ */
+export interface RejectProposalResult {
+  success: boolean;
+  proposalId: string;
+  message: string;
+}
+
+/**
+ * Result of proposal approval
+ */
+export interface ApproveProposalResult {
+  success: boolean;
+  proposalId: string;
+  message: string;
+}
+
+/**
+ * Result of bulk rejection
+ */
+export interface BulkRejectResult {
+  success: boolean;
+  total: number;
+  rejected: number;
+  failed: number;
+  results: RejectProposalResult[];
+}
+
+/**
+ * Input for editing a proposal
+ */
+export interface EditProposalInput {
+  /** Proposal ID to edit */
+  proposalId: string;
+  /** New rule name (optional) */
+  name?: string;
+  /** New rule description (optional) */
+  description?: string;
+  /** New keywords (optional) */
+  keywords?: string;
+  /** New template (optional) */
+  template?: string;
+  /** New template parameters (optional) */
+  params?: Record<string, unknown>;
+  /** New raw logic (optional) */
+  logic?: unknown;
+}
+
+/**
+ * Result of proposal edit
+ */
+export interface EditProposalResult {
+  success: boolean;
+  proposalId: string;
+  compressedLogic?: string;
+  message: string;
+}
+
+/**
+ * Helper to create Foundry client
+ */
+function createClient(config: ResolvedConfig) {
+  const token = config.foundry.token;
+  if (!token) {
+    throw new Error('FOUNDRY_TOKEN not set in config');
+  }
+  return createPlatformClient(config.foundry.url, async () => token);
+}
+
+/**
+ * Reject a proposal in Foundry Rules
+ *
+ * @param proposalId - The proposal ID to reject
+ * @param config - Resolved config (from loadConfig)
+ * @param reviewer - Optional reviewer name (defaults to config author)
+ * @returns Result with success status
+ * @throws Error if API call fails
+ */
+export async function rejectProposal(
+  proposalId: string,
+  config: ResolvedConfig,
+  reviewer?: string
+): Promise<RejectProposalResult> {
+  const client = createClient(config);
+  const ontologyId = config.foundry.ontologyRid;
+  const actionApiName = config.sdk.actions.rejectProposal;
+
+  await Actions.apply(client, ontologyId, actionApiName, {
+    parameters: {
+      proposal_object: proposalId,
+      proposal_review_timestamp: new Date().toISOString(),
+      proposal_reviewer: reviewer || config.conventions.defaultAuthor,
+    }
+  });
+
+  return {
+    success: true,
+    proposalId,
+    message: `Proposal ${proposalId} rejected successfully`,
+  };
+}
+
+/**
+ * Approve a proposal in Foundry Rules
+ *
+ * @param proposalId - The proposal ID to approve
+ * @param ruleId - The rule ID associated with the proposal
+ * @param config - Resolved config (from loadConfig)
+ * @param reviewer - Optional reviewer name (defaults to config author)
+ * @returns Result with success status
+ * @throws Error if API call fails
+ */
+export async function approveProposal(
+  proposalId: string,
+  ruleId: string,
+  config: ResolvedConfig,
+  reviewer?: string
+): Promise<ApproveProposalResult> {
+  const client = createClient(config);
+  const ontologyId = config.foundry.ontologyRid;
+  const actionApiName = config.sdk.actions.approveProposal;
+
+  await Actions.apply(client, ontologyId, actionApiName, {
+    parameters: {
+      proposal_object: proposalId,
+      proposal_review_timestamp: new Date().toISOString(),
+      proposal_reviewer: reviewer || config.conventions.defaultAuthor,
+      rule_id: ruleId,
+    }
+  });
+
+  return {
+    success: true,
+    proposalId,
+    message: `Proposal ${proposalId} approved successfully`,
+  };
+}
+
+/**
+ * Bulk reject multiple proposals in Foundry Rules
+ *
+ * @param proposalIds - Array of proposal IDs to reject
+ * @param config - Resolved config (from loadConfig)
+ * @param reason - Optional rejection reason (applied to all)
+ * @returns Result with success/failure counts
+ */
+export async function bulkRejectProposals(
+  proposalIds: string[],
+  config: ResolvedConfig,
+  reason?: string
+): Promise<BulkRejectResult> {
+  const results: RejectProposalResult[] = [];
+  let rejected = 0;
+  let failed = 0;
+
+  for (const proposalId of proposalIds) {
+    try {
+      const result = await rejectProposal(proposalId, config, reason);
+      results.push(result);
+      rejected++;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      results.push({
+        success: false,
+        proposalId,
+        message: `Failed to reject: ${errorMessage}`,
+      });
+      failed++;
+    }
+  }
+
+  return {
+    success: failed === 0,
+    total: proposalIds.length,
+    rejected,
+    failed,
+    results,
+  };
+}
+
+/**
+ * Edit an existing proposal in Foundry Rules
+ *
+ * @param input - Edit input with proposal ID and new values
+ * @param config - Resolved config (from loadConfig)
+ * @returns Result with success status
+ * @throws Error if validation fails or API call fails
+ */
+export async function editProposal(
+  input: EditProposalInput,
+  config: ResolvedConfig
+): Promise<EditProposalResult> {
+  const { proposalId } = input;
+
+  // Build and validate new logic if provided
+  let compressedLogic: string | undefined;
+
+  if (input.logic || (input.template && input.params)) {
+    const proposalInput: ProposalInput = {
+      template: input.template,
+      params: input.params,
+      logic: input.logic,
+    };
+
+    // Validate
+    const validation = validateProposal(proposalInput, config);
+    if (!validation.valid) {
+      const allErrors = [
+        ...validation.structureErrors.map(e => `[Structure] ${e}`),
+        ...validation.propertyErrors.map(e => `[Property] ${e}`),
+        ...validation.filterErrors.map(e => `[Filter] ${e}`),
+      ];
+      throw new Error(`Validation failed:\n${allErrors.join('\n')}`);
+    }
+
+    // Build logic from template if needed
+    let logic: unknown;
+    if (input.template && input.params) {
+      const buildResult = buildFromTemplate(
+        input.template,
+        input.params,
+        config.workflow
+      );
+      logic = buildResult.logic;
+    } else {
+      logic = input.logic;
+    }
+
+    compressedLogic = compress(logic);
+  }
+
+  const client = createClient(config);
+  const ontologyId = config.foundry.ontologyRid;
+  const actionApiName = config.sdk.actions.editProposal;
+
+  // Build parameters using correct Foundry Rules API parameter names
+  // Note: Edit action uses same parameter names as create action
+  const parameters: Record<string, unknown> = {
+    proposal_object: proposalId,
+    proposal_creation_timestamp: new Date().toISOString(),
+    proposal_author: config.conventions.defaultAuthor,
+  };
+
+  if (input.name !== undefined) {
+    parameters.new_rule_name = input.name;
+  }
+  if (input.description !== undefined) {
+    parameters.new_rule_description = input.description;
+  }
+  if (input.keywords !== undefined) {
+    parameters.new_logic_keywords = input.keywords;
+  }
+  if (compressedLogic !== undefined) {
+    parameters.new_logic = compressedLogic;
+  }
+
+  await Actions.apply(client, ontologyId, actionApiName, { parameters });
+
+  return {
+    success: true,
+    proposalId,
+    compressedLogic,
+    message: `Proposal ${proposalId} edited successfully`,
+  };
+}

@@ -30,6 +30,7 @@
     "tokenEnvVar": "FOUNDRY_TOKEN"
   },
   "sdk": {
+    "packageName": "@demo-product/sdk",
     "archetypes": {
       "proposal": "FoundryRulesProposalObjectArchetypeId1_7",
       "rule": "FoundryRulesRuleObjectArchetypeId1_7"
