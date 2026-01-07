@@ -46,3 +46,6 @@ Thumbs.db
 
 # Foundry
 .token
+
+# Conda
+conda_output/

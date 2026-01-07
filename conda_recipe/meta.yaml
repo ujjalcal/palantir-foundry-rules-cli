@@ -1,0 +1,20 @@
+package:
+  name: foundry-rules-cli
+  version: "1.0.1"
+
+source:
+  path: ../src
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python >=3.10
+    - pydantic >=2.0.0
+    - httpx >=0.25.0
+
+build:
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+  noarch: python
