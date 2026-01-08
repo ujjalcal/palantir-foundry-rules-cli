@@ -5,7 +5,6 @@ Command-line interface for managing Foundry Rules proposals.
 """
 
 import json
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -13,7 +12,6 @@ import typer
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
 
 from .config import load_config, LoadResult
 from .config.types import ResolvedConfig
